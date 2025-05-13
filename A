@@ -1,0 +1,132 @@
+-- ========================
+-- Inventory Tracking System
+-- Author: [Your Name]
+-- Date: [Date]
+-- Description: A relational database to manage products, suppliers, categories, and inventory transactions.
+-- ========================
+
+-- DROP tables if they exist to prevent errors when rerunning the script
+DROP TABLE IF EXISTS Transactions;
+DROP TABLE IF EXISTS Products;
+DROP TABLE IF EXISTS Categories;
+DROP TABLE IF EXISTS Suppliers;
+DROP TABLE IF EXISTS Users;
+
+-- ========================
+-- USERS Table (for admin or system users)
+-- ========================
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    role ENUM('admin', 'manager', 'staff') NOT NULL
+);
+
+-- ========================
+-- SUPPLIERS Table
+-- ========================
+CREATE TABLE Suppliers (
+    supplier_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    contact_person VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    phone VARCHAR(20),
+    address TEXT
+);
+
+-- ========================
+-- CATEGORIES Table
+-- ========================
+CREATE TABLE Categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- ========================
+-- PRODUCTS Table
+-- ========================
+CREATE TABLE Products (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    quantity_in_stock INT NOT NULL,
+    category_id INT,
+    supplier_id INT,
+    created_by INT,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id),
+    FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
+    FOREIGN KEY (created_by) REFERENCES Users(user_id)
+);
+
+-- ========================
+-- TRANSACTIONS Table
+-- ========================
+CREATE TABLE Transactions (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    transaction_type ENUM('IN', 'OUT') NOT NULL, -- IN for restock, OUT for sales/usage
+    quantity INT NOT NULL,
+    transaction_date DATETIME NOT NULL,
+    created_by INT,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    FOREIGN KEY (created_by) REFERENCES Users(user_id)
+);
+
+-- ========================
+-- Sample Data for Testing
+-- ========================
+
+-- Sample user (admin)
+INSERT INTO Users (username, password, role) VALUES ('admin1', 'adminpass123', 'admin');
+
+-- Sample suppliers
+INSERT INTO Suppliers (name, contact_person, email, phone, address)
+VALUES ('Supplier A', 'Alice Johnson', 'alice@supplier.com', '0712345678', '123 Supplier St, City'),
+       ('Supplier B', 'Bob Smith', 'bob@supplier.com', '0789123456', '456 Supplier Ave, Town');
+
+-- Sample categories
+INSERT INTO Categories (name, description)
+VALUES ('Electronics', 'Devices and gadgets'),
+       ('Furniture', 'Office furniture');
+
+-- Sample products
+INSERT INTO Products (name, description, price, quantity_in_stock, category_id, supplier_id, created_by)
+VALUES ('Laptop', 'High-end laptop', 1200.00, 50, 1, 1, 1),
+       ('Office Chair', 'Ergonomic office chair', 150.00, 30, 2, 2, 1);
+
+-- Sample transactions (Restocks and sales)
+INSERT INTO Transactions (product_id, transaction_type, quantity, transaction_date, created_by)
+VALUES (1, 'IN', 20, '2025-05-01 10:00:00', 1),
+       (1, 'OUT', 5, '2025-05-02 12:00:00', 1),
+       (2, 'IN', 10, '2025-05-03 09:00:00', 1);
+
+-- ========================
+-- Test Queries
+-- ========================
+
+-- Show all tables in the database
+SHOW TABLES;
+
+-- View data from tables
+SELECT * FROM Users;
+SELECT * FROM Suppliers;
+SELECT * FROM Categories;
+SELECT * FROM Products;
+SELECT * FROM Transactions;
+
+-- Describe the Products table
+DESCRIBE Products;
+
+-- Fetch a summary of inventory status
+SELECT p.name, p.quantity_in_stock, SUM(t.quantity) AS total_transactions
+FROM Products p
+LEFT JOIN Transactions t ON p.product_id = t.product_id
+GROUP BY p.product_id;
+
+-- Fetch transaction history for a product
+SELECT t.transaction_type, t.quantity, t.transaction_date
+FROM Transactions t
+WHERE t.product_id = 1
+ORDER BY t.transaction_date DESC;
